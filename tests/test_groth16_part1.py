@@ -66,8 +66,8 @@ def get_qap(x, y):
 
     return Ua, Va, Wa, h, t, U, V, W, a
 
+# The trusted setup here is just a mock, with the values hidden from everyone
 def trusted_setup(U, V, W, t, degrees):
-    # In the actual setup, this numbers are picked through a trusted setup
     tau = GF(1)
     alpha = GF(2)
     beta = GF(3)
@@ -76,17 +76,25 @@ def trusted_setup(U, V, W, t, degrees):
 
     powers_of_tau_A = [multiply(G1,int(tau**i)) for i in range(degrees + 1)]
     alpha1 = multiply(G1, int(alpha))
-    print(alpha1)
     powers_of_tau_B = [multiply(G2,int(tau**i)) for i in range(degrees + 1)]
     beta2 = multiply(G2, int(beta))
-    print(beta2)
-    
+
+    # We evaluate the polynomial t at tau and multiply it with various powers of tau
+    # to get a vector of (encrypted) various powers of tau that the prover can conveniently 
+    # replace the powers of x with (i.e. multiply the coefficients of h with the powers of tau)
+    powers_of_tau_HT = [multiply(G1, int(tau**i * t(tau))) for i in range(t.degree)]
+
+    # Finally, we want to pre-compute W(tau) + beta*U(tau) + alpha*V(tau)).
+    # This computation is different as we are given row matrixes of galois.Poly
+    # e.g. U = [0, 0, 2x^2 + 70x + 10, 0, 78x^2 + 4x + 76, 0] so
+    # so we need to evaluate each polynomial in the matrix at tau and scale the
+    # them by alpha or beta resulting e.g. beta * U(tau) = [0, 0, 3*82, 0, 3*158, 0]
+    # Then we encrypt it with G1
     W_tau = [poly(tau) for poly in W]
     U_tau = [beta * poly(tau) for poly in U]
     V_tau = [alpha * poly(tau) for poly in V]
     C_tau = W_tau + U_tau + V_tau
     powers_of_tau_C = [multiply(G1,int(c)) for c in C_tau]
-    powers_of_tau_HT = [multiply(G1, int(tau**i * t(tau))) for i in range(t.degree)]
 
     return powers_of_tau_A, alpha1, powers_of_tau_B, beta2, powers_of_tau_C, powers_of_tau_HT
 
