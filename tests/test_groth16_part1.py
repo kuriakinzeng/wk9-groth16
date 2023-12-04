@@ -3,7 +3,7 @@ Continuing work from hw7
 '''
 
 import numpy as np
-from py_ecc.bn128 import G1, G2, add, multiply, pairing, curve_order, eq, Z1, Z2, FQ, FQ2
+from py_ecc.bn128 import G1, G2, add, multiply, pairing, neg, final_exponentiate, curve_order, eq, Z1, Z2, FQ, FQ2, FQ12
 from ape import accounts, project
 import galois
 import random
@@ -109,9 +109,9 @@ def test_verify(accounts):
     x = random.randint(1, curve_order)
     y = random.randint(1, curve_order)
     # TODO: Since I need all these, I might as well compute Ua, Va, Wa in here
-    # Remember only a is secret and cannot be passed around
     Ua, Va, Wa, h, t, U, V, W, a = get_qap(x,y) 
 
+    # Remember only a is secret and cannot be passed around
     powers_of_tau_A, alpha1, powers_of_tau_B, beta2, powers_of_tau_C, powers_of_tau_HT = trusted_setup(U, V, W, t, Ua.degree)
 
     A1 = add(inner_product(powers_of_tau_A, Ua.coeffs[::-1], Z1), alpha1)
@@ -119,6 +119,13 @@ def test_verify(accounts):
     C_prime_1 = inner_product(powers_of_tau_C, a, Z1) 
     HT1 = inner_product(powers_of_tau_HT, h.coeffs[::-1], Z1)
     C1 = add(C_prime_1, HT1)
+
+    # # Sanity checks 
+    # TODO: This failed though
+    # pair1 = pairing(B2, neg(A1))
+    # pair2 = pairing(beta2, alpha1)
+    # pair3 = pairing(G2, C1)
+    # print(final_exponentiate(pair1 * pair2 * pair3) == FQ12.one())
 
     A1_str = [repr(el) for el in A1]
     B2_str = [[repr(el.coeffs[0]), repr(el.coeffs[1])] for el in B2]
