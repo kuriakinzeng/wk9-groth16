@@ -8,7 +8,7 @@ from ape import accounts, project
 import galois
 import random
 
-curve_order = 79
+# curve_order = 79
 GF = galois.GF(curve_order)
 
 def get_qap(x, y):
@@ -58,18 +58,6 @@ def get_qap(x, y):
     Va = V.dot(a)
     Wa = W.dot(a)
 
-    # Balance the equation by adding h(x)t(x)
-    # First, we compute h with t = (x-1)(x-2)(x-3) which is an equation 
-    # where y = 0 at arbitrary x which we picked to be 1, 2, 3 for simplicity 
-    # Uw * Vw = Ww + h(x)t(x) where * is the polynomial multiplication 
-    # h = (Uw * Vw - Ww) / (x-1)(x-2)(x-3)
-
-    # Note: we cannot compute the above using the matrix form
-    # because the matrix is just a representation of the stacked polynomials. 
-    # We have a homomorphism from column vectors to polynomials
-    # where the multiplication (operation) in polynomials is different
-    # We need to do symbolic calculation it in polynomial form
-
     t = galois.Poly([1, curve_order-1], field=GF) * galois.Poly([1, curve_order-2], field=GF) * galois.Poly([1, curve_order-3], field=GF)
     h = (Ua * Va - Wa) // t
 
@@ -79,7 +67,6 @@ def get_qap(x, y):
     return Ua, Va, Wa, h, t, U, V, W, a
 
 def trusted_setup(U, V, W, t, degrees):
-    
     # In the actual setup, this numbers are picked through a trusted setup
     tau = GF(1)
     alpha = GF(2)
