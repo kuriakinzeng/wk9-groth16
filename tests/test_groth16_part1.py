@@ -8,7 +8,7 @@ from ape import accounts, project
 import galois
 import random
 
-# curve_order = 79
+curve_order = 79
 GF = galois.GF(curve_order)
 
 def get_qap(x, y):
@@ -68,16 +68,17 @@ def get_qap(x, y):
 
 # The trusted setup here is just a mock, with the values hidden from everyone
 def trusted_setup(U, V, W, t, degrees):
-    tau = GF(1)
+    tau = GF(4)
     alpha = GF(2)
     beta = GF(3)
-    gamma = GF(4)
-    delta = GF(5)
+    gamma = GF(5)
+    delta = GF(6)
 
     powers_of_tau_A = [multiply(G1,int(tau**i)) for i in range(degrees + 1)]
     alpha1 = multiply(G1, int(alpha))
     powers_of_tau_B = [multiply(G2,int(tau**i)) for i in range(degrees + 1)]
     beta2 = multiply(G2, int(beta))
+    print(alpha1, beta2)
 
     # We evaluate the polynomial t at tau and multiply it with various powers of tau
     # to get a vector of (encrypted) various powers of tau that the prover can conveniently 
