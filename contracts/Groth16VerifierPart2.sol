@@ -25,16 +25,16 @@ contract Groth16VerifierPart2 {
         uint256[4] memory input = [p1.x, p1.y, p2.x, p2.y];
         bool success;
         assembly {
-            success := staticcall(gas(), 6, input, 0xc0, add_result, 0x60)
+            success := staticcall(gas(), 0x06, input, 0xc0, add_result, 0x60)
         }
         require(success, "add failed");
     }
 
-    function ecScalarMul(ECPoint memory p, uint256 s) internal view returns (ECPoint memory mul_result) {
+    function ecMul(ECPoint memory p, uint256 s) internal view returns (ECPoint memory mul_result) {
         uint256[3] memory input = [p.x, p.y, s];
         bool success;
         assembly {
-            success := staticcall(gas(), 7, input, 0x80, mul_result, 0x60)
+            success := staticcall(gas(), 0x07, input, 0x80, mul_result, 0x60)
         }
         require(success, "mul failed");
     }
@@ -53,7 +53,7 @@ contract Groth16VerifierPart2 {
         ];
         ECPoint memory negA1 = _neg(A1);
 
-        ECPoint memory X1 = ecAdd(ecScalarMul(IC[0], public_inputs[0]), ecScalarMul(IC[1], public_inputs[1]));
+        ECPoint memory X1 = ecAdd(ecMul(IC[0], public_inputs[0]), ecMul(IC[1], public_inputs[1]));
 
         uint256[24] memory inputs = [
             negA1.x,
