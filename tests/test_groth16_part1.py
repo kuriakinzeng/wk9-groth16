@@ -99,7 +99,7 @@ def trusted_setup(U, V, W, t, degrees):
     # W_tau = [poly(tau) for poly in W]
     # U_tau = [beta * poly(tau) for poly in U]
     # V_tau = [alpha * poly(tau) for poly in V]
-    C_tau = W_tau + U_tau + V_tau
+    C_tau = [w + u + v for w, u, v in zip(W_tau, U_tau, V_tau)]
     powers_of_tau_C = [multiply(G1,int(c)) for c in C_tau]
 
     return powers_of_tau_A, alpha1, powers_of_tau_B, beta2, powers_of_tau_C, powers_of_tau_HT

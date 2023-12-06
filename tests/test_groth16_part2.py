@@ -8,7 +8,8 @@ from ape import accounts, project
 import galois
 import random
 
-curve_order = 79
+# TODO: The verifier worked with curve_order = 79? Impossible
+# curve_order = 79
 GF = galois.GF(curve_order)
 
 def inner_product(powers_of_tau, coeffs, z):
@@ -90,7 +91,7 @@ def trusted_setup(U, V, W, t, degrees, priv_idx):
     # We evaluate the polynomial t at tau and multiply it with various powers of tau
     # to get a vector of (encrypted) various powers of tau that the prover can conveniently 
     # replace the powers of x with (i.e. multiply the coefficients of h with the powers of tau)
-    powers_of_tau_HT = [multiply(G1, int(tau**i * t(tau))) for i in range(t.degree)]
+    powers_of_tau_HT = [multiply(G1, int(tau**i * t(tau) / delta)) for i in range(t.degree)]
 
     # Finally, we want to pre-compute W(tau) + beta*U(tau) + alpha*V(tau)).
     # This computation is different as we are given row matrixes of galois.Poly
@@ -98,32 +99,35 @@ def trusted_setup(U, V, W, t, degrees, priv_idx):
     # so we need to evaluate each polynomial in the matrix at tau and scale the
     # them by alpha or beta resulting e.g. beta * U(tau) = [0, 0, 3*82, 0, 3*158, 0]
     # Then we encrypt it with G1
-    W_tau = np.array([poly(tau) for poly in W])
-    U_tau = np.array([beta * poly(tau) for poly in U])
-    V_tau = np.array([alpha * poly(tau) for poly in V])
-    C_tau = W_tau + U_tau + V_tau
+    W_tau = [poly(tau) for poly in W]
+    U_tau = [beta * poly(tau) for poly in U]
+    V_tau = [alpha * poly(tau) for poly in V]
+    C_tau = [w + u + v for w, u, v in zip(W_tau, U_tau, V_tau)]
 
-    powers_of_tau_C = [multiply(G1,int(c)) for c in C_tau]
-    powers_of_tau_C_public = powers_of_tau_C[:priv_idx]
-    powers_of_tau_C_private = powers_of_tau_C[priv_idx:]
+    powers_of_tau_C_public = [multiply(G1,int(c/gamma)) for c in C_tau[:priv_idx]]
+    powers_of_tau_C_private = [multiply(G1,int(c/delta)) for c in C_tau[priv_idx:]]
+
+    gamma2 = multiply(G2, int(gamma))
+    delta2 = multiply(G2, int(delta))
 
     # Print out for the verifier
     # print(alpha1)
     # print(beta2)
-    # print(powers_of_tau_C_public) 
-    # TODO: Only the first element of powers_of_tau_C_public changes with the curve order
+    # print(powers_of_tau_C_public)
+    # print(gamma2)
+    # print(delta2)
 
-    return powers_of_tau_A, alpha1, powers_of_tau_B, beta2, powers_of_tau_C_public, powers_of_tau_C_private, powers_of_tau_HT
+    return powers_of_tau_A, alpha1, powers_of_tau_B, beta2, powers_of_tau_C_public, powers_of_tau_C_private, powers_of_tau_HT, gamma2, delta2
 
 # part 2
-def test_verify2(accounts):
+def test_verify(accounts):
     x = random.randint(1, curve_order-1)
     y = random.randint(1, curve_order-1)
-    # TODO: Since I need all these, I might as well compute Ua, Va, Wa in here
+    # TODO: get_qap should just return private_inputs and public inputs so it's less error prone
     Ua, Va, Wa, h, t, U, V, W, a, priv_input_idx = get_qap(x,y) 
 
     # Remember only a is secret and cannot be passed around
-    powers_of_tau_A, alpha1, powers_of_tau_B, beta2, powers_of_tau_C_public, powers_of_tau_C_private, powers_of_tau_HT = trusted_setup(U, V, W, t, Ua.degree, priv_input_idx)
+    powers_of_tau_A, alpha1, powers_of_tau_B, beta2, powers_of_tau_C_public, powers_of_tau_C_private, powers_of_tau_HT, gamma2, delta2 = trusted_setup(U, V, W, t, Ua.degree, priv_input_idx)
 
     A1 = add(inner_product(powers_of_tau_A, Ua.coeffs[::-1], Z1), alpha1)
     B2 = add(inner_product(powers_of_tau_B, Va.coeffs[::-1], Z2), beta2)
@@ -135,21 +139,19 @@ def test_verify2(accounts):
     HT1 = inner_product(powers_of_tau_HT, h.coeffs[::-1], Z1)
     C1 = add(C_prime_1, HT1)
 
-    # # Sanity checks 
-    # TODO: This failed though
-    pair1 = pairing(B2, neg(A1))
-    pair2 = pairing(beta2, alpha1)
-    pair3 = pairing(G2, X1)
-    pair4 = pairing(G2, C1)
-    print(final_exponentiate(pair1 * pair2 * pair3 * pair4) == FQ12.one())
+    # Sanity checks 
+    # pair1 = pairing(B2, neg(A1))
+    # pair2 = pairing(beta2, alpha1)
+    # pair3 = pairing(gamma2, X1)
+    # pair4 = pairing(delta2, C1)
+    # print(final_exponentiate(pair1 * pair2 * pair3 * pair4) == FQ12.one())
 
     A1_str = [repr(el) for el in A1]
     B2_str = [[repr(el.coeffs[0]), repr(el.coeffs[1])] for el in B2]
     C1_str = [repr(el) for el in C1]
+    public_inputs = [repr(int(el)) for el in a[:priv_input_idx]]
 
-    # account = accounts[0]
-    # contract = account.deploy(project.Groth16VerifierPart1)
-    # result = contract.verify(A1_str, B2_str, C1_str)
-    # assert result
-
-test_verify2(accounts)
+    account = accounts[0]
+    contract = account.deploy(project.Groth16VerifierPart2)
+    result = contract.verify(A1_str, B2_str, C1_str, public_inputs)
+    assert result
