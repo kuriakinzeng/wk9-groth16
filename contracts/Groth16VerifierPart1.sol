@@ -14,7 +14,7 @@ contract Groth16VerifierPart1 {
 
     uint256 constant FIELD_MOD = 21888242871839275222246405745257275088696311157297823662689037894645226208583;
 
-    function _neg(ECPoint memory pt) private view returns (ECPoint memory) {
+    function _neg(ECPoint memory pt) private pure returns (ECPoint memory) {
         if (pt.x == 0 && pt.y == 0)
             return pt;
         else
@@ -59,5 +59,7 @@ contract Groth16VerifierPart1 {
         require(success, "pairing failed");
 
         return success;
+
+
     }
 }

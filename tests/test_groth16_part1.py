@@ -8,7 +8,7 @@ from ape import accounts, project
 import galois
 import random
 
-curve_order = 79
+# curve_order = 79
 GF = galois.GF(curve_order)
 
 def get_qap(x, y):
@@ -91,9 +91,14 @@ def trusted_setup(U, V, W, t, degrees):
     # so we need to evaluate each polynomial in the matrix at tau and scale the
     # them by alpha or beta resulting e.g. beta * U(tau) = [0, 0, 3*82, 0, 3*158, 0]
     # Then we encrypt it with G1
-    W_tau = [poly(tau) for poly in W]
-    U_tau = [beta * poly(tau) for poly in U]
-    V_tau = [alpha * poly(tau) for poly in V]
+    W_tau = np.array([poly(tau) for poly in W])
+    U_tau = np.array([beta * poly(tau) for poly in U])
+    V_tau = np.array([alpha * poly(tau) for poly in V])
+
+    # TODO: The verifier accepts this while it's clearly wrong
+    # W_tau = [poly(tau) for poly in W]
+    # U_tau = [beta * poly(tau) for poly in U]
+    # V_tau = [alpha * poly(tau) for poly in V]
     C_tau = W_tau + U_tau + V_tau
     powers_of_tau_C = [multiply(G1,int(c)) for c in C_tau]
 
@@ -106,6 +111,7 @@ def inner_product(powers_of_tau, coeffs, z):
         sum = add(sum, pdt)
     return sum
 
+# part 1
 def test_verify(accounts):
     x = random.randint(1, curve_order)
     y = random.randint(1, curve_order)
@@ -121,12 +127,11 @@ def test_verify(accounts):
     HT1 = inner_product(powers_of_tau_HT, h.coeffs[::-1], Z1)
     C1 = add(C_prime_1, HT1)
 
-    # # Sanity checks 
-    # TODO: This failed though
-    # pair1 = pairing(B2, neg(A1))
-    # pair2 = pairing(beta2, alpha1)
-    # pair3 = pairing(G2, C1)
-    # print(final_exponentiate(pair1 * pair2 * pair3) == FQ12.one())
+    # Sanity checks. This is only works properly if the right curve_order is used 
+    pair1 = pairing(B2, neg(A1))
+    pair2 = pairing(beta2, alpha1)
+    pair3 = pairing(G2, C1)
+    print(final_exponentiate(pair1 * pair2 * pair3) == FQ12.one())
 
     A1_str = [repr(el) for el in A1]
     B2_str = [[repr(el.coeffs[0]), repr(el.coeffs[1])] for el in B2]
