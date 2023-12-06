@@ -8,7 +8,6 @@ from ape import accounts, project
 import galois
 import random
 
-# TODO: The verifier worked with curve_order = 79? Impossible
 # curve_order = 79
 GF = galois.GF(curve_order)
 
@@ -122,7 +121,7 @@ def trusted_setup(U, V, W, t, degrees, priv_idx):
 
     return powers_of_tau_1, alpha1, powers_of_tau_2, beta2, powers_of_tau_C_public, powers_of_tau_C_private, powers_of_tau_HT, gamma2, delta2, beta1, delta1
 
-# part 2
+# part 3
 def test_verify(accounts):
     x, y, r, s = GF.Random(4)
 
@@ -154,7 +153,7 @@ def test_verify(accounts):
     pair2 = pairing(beta2, alpha1)
     pair3 = pairing(gamma2, X1)
     pair4 = pairing(delta2, C1)
-    print(final_exponentiate(pair1 * pair2 * pair3 * pair4) == FQ12.one())
+    assert final_exponentiate(pair1 * pair2 * pair3 * pair4) == FQ12.one(), "A1B2 != alpha beta + X1 gamma2 +C1 delta2"
 
     A1_str = [repr(el) for el in A1]
     B2_str = [[repr(el.coeffs[0]), repr(el.coeffs[1])] for el in B2]
@@ -162,6 +161,6 @@ def test_verify(accounts):
     public_inputs = [repr(int(el)) for el in a[:priv_input_idx]]
 
     account = accounts[0]
-    contract = account.deploy(project.Groth16VerifierPart2)
+    contract = account.deploy(project.Groth16Verifier)
     result = contract.verify(A1_str, B2_str, C1_str, public_inputs)
     assert result

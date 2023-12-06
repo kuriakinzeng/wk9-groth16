@@ -8,7 +8,6 @@ from ape import accounts, project
 import galois
 import random
 
-# TODO: The verifier worked with curve_order = 79? Impossible
 # curve_order = 79
 GF = galois.GF(curve_order)
 
@@ -39,8 +38,6 @@ def get_qap(x, y):
     C = GF([remove_negatives(row) for row in C_raw])
 
     # Compute the witness
-    x = GF(x)
-    y = GF(y)
     v1 = GF(3)*x*x
     v2 = v1 * y
     out = GF(3)*x*x*y + GF(5)*x*y + GF(curve_order-1)*x + GF(curve_order-2)*y + GF(3) # out = 3x^2y + 5xy - x - 2y + 3
@@ -107,22 +104,24 @@ def trusted_setup(U, V, W, t, degrees, priv_idx):
     powers_of_tau_C_public = [multiply(G1,int(c/gamma)) for c in C_tau[:priv_idx]]
     powers_of_tau_C_private = [multiply(G1,int(c/delta)) for c in C_tau[priv_idx:]]
 
-    gamma2 = multiply(G2, int(gamma))
     delta2 = multiply(G2, int(delta))
+    gamma2 = multiply(G2, int(gamma))
 
     # Print out for the verifier
-    # print(alpha1)
-    # print(beta2)
-    # print(powers_of_tau_C_public)
-    # print(gamma2)
-    # print(delta2)
+    print("alpha1", alpha1)
+    print("beta2", beta2)
+    print("delta2", delta2)
+    print("gamma2", gamma2)
+    print("IC", powers_of_tau_C_public)
 
     return powers_of_tau_A, alpha1, powers_of_tau_B, beta2, powers_of_tau_C_public, powers_of_tau_C_private, powers_of_tau_HT, gamma2, delta2
 
 # part 2
 def test_verify(accounts):
-    x = random.randint(1, curve_order-1)
-    y = random.randint(1, curve_order-1)
+    # TODO: Make it random
+    x, y = GF.Random(2)
+    x = GF(2)
+    y = GF(3)
     # TODO: get_qap should just return private_inputs and public inputs so it's less error prone
     Ua, Va, Wa, h, t, U, V, W, a, priv_input_idx = get_qap(x,y) 
 
@@ -140,18 +139,24 @@ def test_verify(accounts):
     C1 = add(C_prime_1, HT1)
 
     # Sanity checks 
-    # pair1 = pairing(B2, neg(A1))
-    # pair2 = pairing(beta2, alpha1)
-    # pair3 = pairing(gamma2, X1)
-    # pair4 = pairing(delta2, C1)
-    # print(final_exponentiate(pair1 * pair2 * pair3 * pair4) == FQ12.one())
+    pair1 = pairing(B2, neg(A1))
+    pair2 = pairing(beta2, alpha1)
+    pair3 = pairing(gamma2, X1)
+    pair4 = pairing(delta2, C1)
+    assert final_exponentiate(pair1 * pair2 * pair3 * pair4) == FQ12.one(), "A1B2 != alpha beta + X1 gamma2 +C1 delta2"
 
     A1_str = [repr(el) for el in A1]
     B2_str = [[repr(el.coeffs[0]), repr(el.coeffs[1])] for el in B2]
     C1_str = [repr(el) for el in C1]
     public_inputs = [repr(int(el)) for el in a[:priv_input_idx]]
 
+    print("a1", A1)
+    print("b2", B2)
+    print("c1", C1)
+    print("x1", X1)
+
     account = accounts[0]
-    contract = account.deploy(project.Groth16VerifierPart2)
+    contract = account.deploy(project.Groth16Verifier)
+    # result = contract.verify_hardcode()
     result = contract.verify(A1_str, B2_str, C1_str, public_inputs)
     assert result
